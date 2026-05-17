@@ -3,614 +3,650 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
-  <title>なみすけAR - 杉並区キャラクター</title>
-
-  <!-- A-Frame & AR.js -->
+  <title>なみすけAR</title>
   <script src="https://aframe.io/releases/1.4.0/aframe.min.js"></script>
-  <script src="https://raw.githack.com/AR-js-org/AR.js/master/aframe/build/aframe-ar.js"></script>
-
+  <script src="https://cdn.jsdelivr.net/npm/mind-ar@1.2.5/dist/mindar-image-aframe.prod.js"></script>
   <style>
-    * { margin: 0; padding: 0; box-sizing: border-box; }
+    *, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
+
+    :root {
+      --blue:   #4aaef0;
+      --purple: #7c4dff;
+      --green:  #34d399;
+      --red:    #f87171;
+      --gold:   #fbbf24;
+    }
 
     body {
-      background: #0a0a1a;
+      background: #08090f;
       color: #fff;
-      font-family: 'Hiragino Kaku Gothic ProN', 'Noto Sans JP', sans-serif;
+      font-family: 'Hiragino Kaku Gothic ProN', 'Noto Sans JP', 'Yu Gothic', sans-serif;
       overflow: hidden;
+      -webkit-tap-highlight-color: transparent;
     }
 
-    /* ── ローディング画面 ── */
-    #loading-screen {
-      position: fixed;
-      inset: 0;
-      background: linear-gradient(135deg, #0a0a1a 0%, #1a1a3a 50%, #0d1a2e 100%);
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      justify-content: center;
-      z-index: 9999;
-      transition: opacity 0.6s ease;
+    /* ═══════════════════════════════
+       ① スタート画面
+    ═══════════════════════════════ */
+    #start-screen {
+      position: fixed; inset: 0; z-index: 9000;
+      display: flex; flex-direction: column;
+      align-items: center; justify-content: center;
+      padding: 28px;
+      background: radial-gradient(ellipse at 50% 0%, #0d2040 0%, #08090f 70%);
+      transition: opacity .5s ease;
     }
-    #loading-screen.hidden {
-      opacity: 0;
+    #start-screen.hidden { opacity: 0; pointer-events: none; }
+
+    /* 星背景 */
+    #start-screen::before {
+      content: '';
+      position: absolute; inset: 0;
+      background-image:
+        radial-gradient(1px 1px at 20% 15%, rgba(255,255,255,.5) 0%, transparent 100%),
+        radial-gradient(1px 1px at 75% 30%, rgba(255,255,255,.4) 0%, transparent 100%),
+        radial-gradient(1px 1px at 40% 70%, rgba(255,255,255,.3) 0%, transparent 100%),
+        radial-gradient(1px 1px at 85% 80%, rgba(255,255,255,.5) 0%, transparent 100%),
+        radial-gradient(1px 1px at 10% 55%, rgba(255,255,255,.3) 0%, transparent 100%),
+        radial-gradient(1.5px 1.5px at 60% 10%, rgba(255,255,255,.6) 0%, transparent 100%);
       pointer-events: none;
     }
 
-    .logo-circle {
-      width: 100px;
-      height: 100px;
+    .logo-wrap {
+      position: relative; margin-bottom: 16px;
+    }
+    .logo-emoji {
+      font-size: 80px; display: block;
+      animation: float 3s ease-in-out infinite;
+      filter: drop-shadow(0 0 24px rgba(74,174,240,.5));
+    }
+    @keyframes float {
+      0%,100% { transform: translateY(0); }
+      50%      { transform: translateY(-14px); }
+    }
+    .logo-ring {
+      position: absolute; inset: -12px;
       border-radius: 50%;
-      background: linear-gradient(135deg, #4aaef0, #7c4dff);
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      font-size: 48px;
-      margin-bottom: 20px;
-      animation: pulse 2s ease-in-out infinite;
-      box-shadow: 0 0 40px rgba(74, 174, 240, 0.4);
+      border: 1.5px solid rgba(74,174,240,.2);
+      animation: spin-ring 8s linear infinite;
     }
-    @keyframes pulse {
-      0%, 100% { transform: scale(1); box-shadow: 0 0 40px rgba(74,174,240,0.4); }
-      50% { transform: scale(1.06); box-shadow: 0 0 60px rgba(74,174,240,0.7); }
-    }
+    @keyframes spin-ring { to { transform: rotate(360deg); } }
 
-    #loading-screen h1 {
-      font-size: 26px;
-      font-weight: 700;
-      letter-spacing: 0.05em;
+    .app-title {
+      font-size: 30px; font-weight: 800; letter-spacing: .04em;
+      background: linear-gradient(135deg, var(--blue) 0%, #a78bfa 100%);
+      -webkit-background-clip: text; -webkit-text-fill-color: transparent;
       margin-bottom: 6px;
-      background: linear-gradient(135deg, #4aaef0, #b39dff);
-      -webkit-background-clip: text;
-      -webkit-text-fill-color: transparent;
     }
-    #loading-screen p {
-      font-size: 13px;
-      color: rgba(255,255,255,0.5);
-      margin-bottom: 30px;
+    .app-sub {
+      font-size: 13px; color: rgba(255,255,255,.4);
+      margin-bottom: 36px; letter-spacing: .02em;
     }
 
+    /* チェックリストカード */
+    .check-card {
+      width: 100%; max-width: 340px;
+      background: rgba(255,255,255,.04);
+      border: 1px solid rgba(255,255,255,.09);
+      border-radius: 18px; padding: 6px 0;
+      margin-bottom: 20px;
+      backdrop-filter: blur(12px);
+    }
+    .check-row {
+      display: flex; align-items: center; gap: 12px;
+      padding: 12px 20px;
+      border-bottom: 1px solid rgba(255,255,255,.05);
+    }
+    .check-row:last-child { border-bottom: none; }
+    .check-icon { font-size: 20px; width: 26px; text-align: center; flex-shrink: 0; }
+    .check-label { font-size: 13px; color: rgba(255,255,255,.7); flex: 1; }
+    .check-status {
+      font-size: 11px; font-weight: 700; letter-spacing: .04em;
+      padding: 3px 10px; border-radius: 20px;
+    }
+    .status-checking { background: rgba(255,255,255,.08); color: rgba(255,255,255,.4); }
+    .status-ok   { background: rgba(52,211,153,.15); color: var(--green); }
+    .status-ng   { background: rgba(248,113,113,.15); color: var(--red); }
+
+    /* スタートボタン */
     .start-btn {
-      background: linear-gradient(135deg, #4aaef0, #7c4dff);
-      color: #fff;
-      border: none;
-      border-radius: 50px;
-      padding: 14px 40px;
-      font-size: 16px;
-      font-weight: 600;
-      cursor: pointer;
-      letter-spacing: 0.05em;
-      transition: transform 0.2s, box-shadow 0.2s;
-      box-shadow: 0 4px 20px rgba(74,174,240,0.4);
+      width: 100%; max-width: 340px;
+      padding: 16px; border: none; border-radius: 50px;
+      font-size: 16px; font-weight: 800; letter-spacing: .04em;
+      color: #fff; cursor: pointer;
+      background: linear-gradient(135deg, var(--blue), var(--purple));
+      box-shadow: 0 6px 28px rgba(74,174,240,.35);
+      transition: transform .18s, box-shadow .18s, opacity .3s;
+      position: relative; overflow: hidden;
     }
-    .start-btn:hover { transform: translateY(-2px); box-shadow: 0 8px 30px rgba(74,174,240,0.5); }
-    .start-btn:active { transform: scale(0.97); }
-
-    .tips {
-      margin-top: 30px;
-      background: rgba(255,255,255,0.06);
-      border: 1px solid rgba(255,255,255,0.1);
-      border-radius: 16px;
-      padding: 16px 20px;
-      max-width: 320px;
-      text-align: left;
+    .start-btn::after {
+      content: '';
+      position: absolute; inset: 0;
+      background: linear-gradient(135deg, rgba(255,255,255,.15), transparent);
+      border-radius: inherit;
     }
-    .tips h3 { font-size: 12px; color: #4aaef0; margin-bottom: 8px; text-transform: uppercase; letter-spacing: 0.1em; }
-    .tips li { font-size: 12px; color: rgba(255,255,255,0.65); line-height: 1.7; margin-left: 14px; }
+    .start-btn:not(:disabled):active { transform: scale(.96); box-shadow: 0 2px 12px rgba(74,174,240,.2); }
+    .start-btn:disabled { opacity: .38; cursor: not-allowed; }
 
-    /* ── AR シーン ── */
-    #ar-scene-wrapper {
+    /* ガイドボックス（targets.mind未設定時） */
+    #setup-guide {
       display: none;
-      position: fixed;
-      inset: 0;
+      width: 100%; max-width: 340px;
+      background: rgba(251,191,36,.06);
+      border: 1px solid rgba(251,191,36,.2);
+      border-radius: 16px; padding: 18px 20px;
+      margin-top: 16px;
     }
-    #ar-scene-wrapper.active { display: block; }
+    #setup-guide.show { display: block; }
+    .guide-title {
+      font-size: 12px; font-weight: 700; color: var(--gold);
+      letter-spacing: .08em; margin-bottom: 12px; text-transform: uppercase;
+    }
+    .guide-step {
+      display: flex; gap: 10px; align-items: flex-start;
+      padding: 7px 0; border-bottom: 1px solid rgba(255,255,255,.05);
+      font-size: 12px; color: rgba(255,255,255,.7); line-height: 1.6;
+    }
+    .guide-step:last-child { border-bottom: none; }
+    .guide-num {
+      width: 20px; height: 20px; border-radius: 50%; flex-shrink: 0;
+      background: rgba(251,191,36,.2); color: var(--gold);
+      font-size: 11px; font-weight: 700;
+      display: flex; align-items: center; justify-content: center;
+      margin-top: 1px;
+    }
+    .guide-step code {
+      background: rgba(255,255,255,.1); border-radius: 4px;
+      padding: 1px 6px; font-family: monospace; font-size: 11px; color: var(--gold);
+    }
+    .guide-link {
+      display: block; margin-top: 14px; text-align: center;
+      background: rgba(74,174,240,.15); border: 1px solid rgba(74,174,240,.3);
+      border-radius: 10px; padding: 10px;
+      font-size: 12px; font-weight: 700; color: var(--blue);
+      text-decoration: none; letter-spacing: .02em;
+    }
 
-    a-scene {
-      width: 100vw !important;
-      height: 100vh !important;
+    /* ═══════════════════════════════
+       ② ARシーン
+    ═══════════════════════════════ */
+    #ar-wrap {
+      display: none; position: fixed; inset: 0; z-index: 1;
     }
+    #ar-wrap.active { display: block; }
+    a-scene { width: 100vw !important; height: 100vh !important; }
 
-    /* ── UI オーバーレイ ── */
-    #ui-overlay {
-      position: fixed;
-      inset: 0;
-      pointer-events: none;
-      z-index: 100;
+    /* ═══════════════════════════════
+       ③ UIオーバーレイ
+    ═══════════════════════════════ */
+    #ui {
+      display: none; position: fixed; inset: 0;
+      z-index: 5000; pointer-events: none;
     }
+    #ui.active { display: block; }
 
     /* ヘッダー */
-    #header {
-      position: absolute;
-      top: 0; left: 0; right: 0;
-      padding: 16px 20px;
-      background: linear-gradient(to bottom, rgba(0,0,0,0.6), transparent);
-      display: flex;
-      align-items: center;
-      gap: 10px;
+    #ui-header {
+      position: absolute; top: 0; left: 0; right: 0;
+      padding: env(safe-area-inset-top, 12px) 20px 12px;
+      padding-top: max(env(safe-area-inset-top), 12px);
+      background: linear-gradient(to bottom, rgba(0,0,0,.6) 0%, transparent 100%);
+      display: flex; align-items: center; gap: 10px;
     }
-    #header .badge {
-      background: rgba(74,174,240,0.25);
-      border: 1px solid rgba(74,174,240,0.5);
-      border-radius: 20px;
-      padding: 4px 12px;
-      font-size: 11px;
-      color: #4aaef0;
-      font-weight: 600;
-      letter-spacing: 0.08em;
+    .live-badge {
+      display: flex; align-items: center; gap: 6px;
+      background: rgba(74,174,240,.18);
+      border: 1px solid rgba(74,174,240,.4);
+      border-radius: 20px; padding: 4px 12px;
+      font-size: 11px; font-weight: 700; color: var(--blue); letter-spacing: .08em;
     }
-    #header .title { font-size: 15px; font-weight: 600; }
+    .live-dot {
+      width: 6px; height: 6px; border-radius: 50%;
+      background: var(--blue); animation: blink 1.2s ease-in-out infinite;
+    }
+    @keyframes blink { 0%,100%{opacity:1} 50%{opacity:.2} }
+    .header-title { font-size: 15px; font-weight: 700; }
 
     /* スキャンガイド */
     #scan-guide {
-      position: absolute;
-      top: 50%;
-      left: 50%;
+      position: absolute; top: 50%; left: 50%;
       transform: translate(-50%, -50%);
-      width: 220px;
-      height: 220px;
-      pointer-events: none;
-      transition: opacity 0.5s;
+      display: flex; flex-direction: column; align-items: center; gap: 20px;
+      transition: opacity .5s ease;
     }
-    #scan-guide.hidden { opacity: 0; }
+    #scan-guide.hidden { opacity: 0; pointer-events: none; }
 
+    .guide-frame {
+      width: 230px; height: 230px; position: relative;
+    }
     .corner {
-      position: absolute;
-      width: 36px;
-      height: 36px;
-      border-color: rgba(74,174,240,0.9);
-      border-style: solid;
+      position: absolute; width: 38px; height: 38px;
+      border-color: rgba(74,174,240,.85); border-style: solid;
     }
-    .corner.tl { top: 0; left: 0; border-width: 3px 0 0 3px; border-radius: 4px 0 0 0; }
-    .corner.tr { top: 0; right: 0; border-width: 3px 3px 0 0; border-radius: 0 4px 0 0; }
-    .corner.bl { bottom: 0; left: 0; border-width: 0 0 3px 3px; border-radius: 0 0 0 4px; }
-    .corner.br { bottom: 0; right: 0; border-width: 0 3px 3px 0; border-radius: 0 0 4px 0; }
-
+    .corner.tl { top:0; left:0;  border-width: 3px 0 0 3px; border-radius: 6px 0 0 0; }
+    .corner.tr { top:0; right:0; border-width: 3px 3px 0 0; border-radius: 0 6px 0 0; }
+    .corner.bl { bottom:0; left:0;  border-width: 0 0 3px 3px; border-radius: 0 0 0 6px; }
+    .corner.br { bottom:0; right:0; border-width: 0 3px 3px 0; border-radius: 0 0 6px 0; }
     .scan-line {
-      position: absolute;
-      left: 10px; right: 10px;
-      height: 2px;
-      background: linear-gradient(90deg, transparent, #4aaef0, transparent);
-      animation: scanAnim 2s linear infinite;
-      border-radius: 1px;
+      position: absolute; left: 10px; right: 10px; height: 2px;
+      background: linear-gradient(90deg, transparent 0%, var(--blue) 50%, transparent 100%);
+      animation: scan 2s linear infinite; border-radius: 1px;
+      box-shadow: 0 0 8px rgba(74,174,240,.6);
     }
-    @keyframes scanAnim {
-      0% { top: 10px; opacity: 0; }
-      10% { opacity: 1; }
-      90% { opacity: 1; }
-      100% { top: 200px; opacity: 0; }
+    @keyframes scan {
+      0%   { top: 10px;  opacity: 0; }
+      8%   { opacity: 1; }
+      92%  { opacity: 1; }
+      100% { top: 215px; opacity: 0; }
     }
+    .guide-text {
+      text-align: center; line-height: 1.65;
+    }
+    .guide-text strong {
+      display: block; font-size: 15px; font-weight: 700;
+      color: #fff; margin-bottom: 4px;
+    }
+    .guide-text span { font-size: 12px; color: rgba(255,255,255,.6); }
 
-    .scan-label {
-      position: absolute;
-      bottom: -32px;
-      left: 50%;
-      transform: translateX(-50%);
-      font-size: 12px;
-      color: rgba(255,255,255,0.7);
+    /* 認識バッジ */
+    #detected-badge {
+      position: absolute; top: max(env(safe-area-inset-top), 12px);
+      top: calc(max(env(safe-area-inset-top), 12px) + 44px);
+      left: 50%; transform: translateX(-50%);
+      display: flex; align-items: center; gap: 7px;
+      background: rgba(52,211,153,.15);
+      border: 1px solid rgba(52,211,153,.4);
+      border-radius: 20px; padding: 6px 16px;
+      font-size: 12px; font-weight: 700; color: var(--green);
       white-space: nowrap;
-      text-align: center;
+      opacity: 0; transition: opacity .3s ease;
+    }
+    #detected-badge.show { opacity: 1; }
+    .det-dot {
+      width: 8px; height: 8px; border-radius: 50%;
+      background: var(--green); animation: blink 1s infinite;
     }
 
-    /* 検出インジケーター */
-    #detection-indicator {
-      position: absolute;
-      top: 80px;
-      left: 50%;
-      transform: translateX(-50%);
-      background: rgba(0,200,100,0.25);
-      border: 1px solid rgba(0,200,100,0.6);
-      border-radius: 20px;
-      padding: 6px 16px;
-      font-size: 12px;
-      color: #00c864;
-      font-weight: 600;
+    /* 登場トースト */
+    #toast {
+      position: absolute; top: 50%; left: 50%;
+      transform: translate(-50%, -50%);
+      background: linear-gradient(135deg, rgba(74,174,240,.92), rgba(124,77,255,.92));
+      border-radius: 18px; padding: 14px 30px;
+      font-size: 18px; font-weight: 800; color: #fff;
+      white-space: nowrap; pointer-events: none;
       opacity: 0;
-      transition: opacity 0.3s;
-      pointer-events: none;
-      display: flex;
-      align-items: center;
-      gap: 6px;
+      box-shadow: 0 8px 32px rgba(74,174,240,.3);
     }
-    #detection-indicator.visible { opacity: 1; }
-    .dot-green {
-      width: 8px; height: 8px;
-      border-radius: 50%;
-      background: #00c864;
-      animation: blink 1s ease-in-out infinite;
+    #toast.show { animation: toast-pop 2.2s ease forwards; }
+    @keyframes toast-pop {
+      0%   { opacity:0; transform:translate(-50%,-38%); }
+      15%  { opacity:1; transform:translate(-50%,-50%); }
+      75%  { opacity:1; transform:translate(-50%,-50%); }
+      100% { opacity:0; transform:translate(-50%,-64%); }
     }
-    @keyframes blink { 0%,100%{opacity:1} 50%{opacity:0.3} }
 
     /* アクションボタン */
-    #action-buttons {
+    #actions {
       position: absolute;
-      bottom: 40px;
-      left: 50%;
-      transform: translateX(-50%);
-      display: flex;
-      gap: 12px;
+      bottom: calc(env(safe-area-inset-bottom, 0px) + 40px);
+      left: 50%; transform: translateX(-50%);
+      display: flex; gap: 12px;
       pointer-events: all;
-      opacity: 0;
-      transition: opacity 0.5s;
-    }
-    #action-buttons.visible { opacity: 1; }
-
-    .action-btn {
-      background: rgba(255,255,255,0.15);
-      backdrop-filter: blur(8px);
-      border: 1px solid rgba(255,255,255,0.2);
-      border-radius: 50px;
-      padding: 10px 20px;
-      font-size: 13px;
-      font-weight: 600;
-      color: #fff;
-      cursor: pointer;
-      transition: all 0.2s;
-    }
-    .action-btn:hover { background: rgba(255,255,255,0.25); transform: translateY(-2px); }
-    .action-btn:active { transform: scale(0.96); }
-    .action-btn.primary {
-      background: linear-gradient(135deg, rgba(74,174,240,0.6), rgba(124,77,255,0.6));
-      border-color: rgba(74,174,240,0.5);
-    }
-
-    /* マーカー表示パネル */
-    #marker-panel {
-      position: fixed;
-      inset: 0;
-      background: rgba(0,0,0,0.85);
-      backdrop-filter: blur(4px);
-      z-index: 9990;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      flex-direction: column;
-      gap: 16px;
-      transition: opacity 0.3s;
-    }
-    #marker-panel.hidden { opacity: 0; pointer-events: none; }
-
-    .marker-card {
-      background: #fff;
-      border-radius: 16px;
-      padding: 20px;
-      text-align: center;
-      max-width: 280px;
-    }
-    .marker-card img { width: 180px; height: 180px; display: block; margin: 0 auto 12px; }
-    .marker-card p { color: #333; font-size: 12px; line-height: 1.6; }
-
-    .panel-close {
-      background: rgba(255,255,255,0.1);
-      border: 1px solid rgba(255,255,255,0.2);
-      border-radius: 50px;
-      padding: 10px 30px;
-      font-size: 14px;
-      color: #fff;
-      cursor: pointer;
-      font-weight: 600;
-    }
-
-    /* なみすけ感知テキスト */
-    #found-toast {
-      position: absolute;
-      top: 50%;
-      left: 50%;
-      transform: translate(-50%, -50%);
-      background: linear-gradient(135deg, rgba(74,174,240,0.9), rgba(124,77,255,0.9));
-      border-radius: 16px;
-      padding: 14px 28px;
-      font-size: 18px;
-      font-weight: 700;
-      color: #fff;
-      opacity: 0;
-      transition: opacity 0.3s, transform 0.3s;
-      pointer-events: none;
+      opacity: 0; transition: opacity .4s ease;
       white-space: nowrap;
     }
-    #found-toast.show {
-      opacity: 1;
-      animation: toastAnim 2s forwards;
+    #actions.show { opacity: 1; }
+    .act-btn {
+      background: rgba(255,255,255,.14);
+      backdrop-filter: blur(10px);
+      -webkit-backdrop-filter: blur(10px);
+      border: 1px solid rgba(255,255,255,.22);
+      border-radius: 50px; padding: 12px 22px;
+      font-size: 14px; font-weight: 700; color: #fff;
+      cursor: pointer; letter-spacing: .02em;
+      transition: background .18s, transform .14s;
+      -webkit-tap-highlight-color: transparent;
     }
-    @keyframes toastAnim {
-      0% { opacity: 0; transform: translate(-50%, -40%); }
-      20% { opacity: 1; transform: translate(-50%, -50%); }
-      70% { opacity: 1; transform: translate(-50%, -50%); }
-      100% { opacity: 0; transform: translate(-50%, -60%); }
+    .act-btn:active {
+      background: rgba(255,255,255,.25);
+      transform: scale(.94);
     }
   </style>
 </head>
 <body>
 
-<!-- ────────────────────────────────────────────
-  ローディング / スタート画面
-──────────────────────────────────────────── -->
-<div id="loading-screen">
-  <div class="logo-circle">🌊</div>
-  <h1>なみすけAR</h1>
-  <p>杉並区キャラクター AR体験アプリ</p>
-  <button class="start-btn" id="start-btn">カメラを起動する</button>
+<!-- ════════════════════════════
+  ① スタート画面
+════════════════════════════ -->
+<div id="start-screen">
+  <div class="logo-wrap">
+    <span class="logo-emoji">🌊</span>
+    <div class="logo-ring"></div>
+  </div>
+  <h1 class="app-title">なみすけAR</h1>
+  <p class="app-sub">なみすけの画像をスキャンして召喚しよう</p>
 
-  <div class="tips">
-    <h3>使い方</h3>
-    <ul>
-      <li>「マーカーを見る」ボタンでマーカーを表示</li>
-      <li>マーカーを印刷またはスクリーンに表示</li>
-      <li>カメラでマーカーに向ける</li>
-      <li>なみすけが登場します！</li>
-    </ul>
+  <div class="check-card">
+    <div class="check-row">
+      <span class="check-icon">📄</span>
+      <span class="check-label">なみすけ画像データ</span>
+      <span class="check-status status-checking" id="st-mind">確認中…</span>
+    </div>
+    <div class="check-row">
+      <span class="check-icon">📷</span>
+      <span class="check-label">カメラ</span>
+      <span class="check-status status-checking" id="st-cam">確認中…</span>
+    </div>
+    <div class="check-row">
+      <span class="check-icon">🔒</span>
+      <span class="check-label">HTTPS接続</span>
+      <span class="check-status status-checking" id="st-https">確認中…</span>
+    </div>
   </div>
 
-  <button class="start-btn" style="margin-top:12px; background: rgba(255,255,255,0.1); box-shadow:none; border: 1px solid rgba(255,255,255,0.2);"
-    id="show-marker-btn">マーカーを見る</button>
-</div>
+  <button class="start-btn" id="start-btn" disabled>確認中…</button>
 
-<!-- ────────────────────────────────────────────
-  マーカー表示パネル
-──────────────────────────────────────────── -->
-<div id="marker-panel" class="hidden">
-  <div class="marker-card">
-    <!-- AR.js 標準 Hiro マーカーをインラインSVGで生成 -->
-    <svg id="hiro-marker" width="180" height="180" viewBox="0 0 180 180" xmlns="http://www.w3.org/2000/svg">
-      <!-- 外枠（白） -->
-      <rect width="180" height="180" fill="white"/>
-      <!-- 黒い外枠 -->
-      <rect x="8" y="8" width="164" height="164" fill="black"/>
-      <!-- 白い内枠 -->
-      <rect x="20" y="20" width="140" height="140" fill="white"/>
-      <!-- Hiro マーカーパターン（中央の黒いパターン） -->
-      <rect x="30" y="30" width="120" height="120" fill="black"/>
-      <!-- Hiroパターン - 白い部分 -->
-      <rect x="40" y="40" width="20" height="20" fill="white"/>
-      <rect x="80" y="40" width="20" height="20" fill="white"/>
-      <rect x="120" y="40" width="20" height="20" fill="white"/>
-      <rect x="40" y="60" width="20" height="60" fill="white"/>
-      <rect x="80" y="60" width="20" height="20" fill="white"/>
-      <rect x="120" y="60" width="20" height="60" fill="white"/>
-      <rect x="60" y="80" width="60" height="20" fill="white"/>
-      <rect x="80" y="100" width="20" height="20" fill="white"/>
-      <rect x="40" y="120" width="20" height="20" fill="white"/>
-      <rect x="80" y="120" width="20" height="20" fill="white"/>
-      <rect x="120" y="120" width="20" height="20" fill="white"/>
-    </svg>
-    <p>このマーカーをカメラに<br>向けるとなみすけが現れます</p>
-    <p style="margin-top:6px; color:#888; font-size:11px;">印刷するかこの画面をそのまま使えます</p>
+  <!-- targets.mind 未設定時のセットアップガイド -->
+  <div id="setup-guide">
+    <div class="guide-title">📂 セットアップが必要です</div>
+    <div class="guide-step">
+      <div class="guide-num">1</div>
+      <div>なみすけ画像（JPG/PNG）を用意して<code>namisuke.png</code>にリネーム</div>
+    </div>
+    <div class="guide-step">
+      <div class="guide-num">2</div>
+      <div>下のリンクの変換ツールを開き、画像をアップロード → Start → Export</div>
+    </div>
+    <div class="guide-step">
+      <div class="guide-num">3</div>
+      <div>ダウンロードしたファイルを<code>targets.mind</code>にリネーム</div>
+    </div>
+    <div class="guide-step">
+      <div class="guide-num">4</div>
+      <div><code>namisuke-ar.html</code>と同じフォルダに2ファイルをアップロード</div>
+    </div>
+    <a class="guide-link"
+       href="https://hiukim.github.io/mind-ar-js-doc/tools/compile"
+       target="_blank" rel="noopener">
+      🔧 変換ツールを開く（MindAR公式）↗
+    </a>
   </div>
-  <button class="panel-close" id="marker-close-btn">閉じる</button>
 </div>
 
-<!-- ────────────────────────────────────────────
-  AR シーン
-──────────────────────────────────────────── -->
-<div id="ar-scene-wrapper">
+<!-- ════════════════════════════
+  ② ARシーン
+════════════════════════════ -->
+<div id="ar-wrap">
   <a-scene
     id="ar-scene"
-    embedded
-    arjs="sourceType: webcam; debugUIEnabled: false; detectionMode: mono_and_matrix; matrixCodeType: 3x3;"
+    mindar-image="imageTargetSrc: targets.mind; autoStart: false; uiLoading: no; uiScanning: no; uiError: no;"
+    color-space="sRGB"
+    renderer="colorManagement: true;"
     vr-mode-ui="enabled: false"
-    renderer="logarithmicDepthBuffer: true; precision: medium;"
+    device-orientation-permission-ui="enabled: false"
     loading-screen="enabled: false"
   >
+    <a-assets>
+      <img id="namisuke-img" src="namisuke.png" crossorigin="anonymous">
+    </a-assets>
 
-    <!-- なみすけキャラクター（ビルボードスプライト） -->
-    <!-- Hiroマーカーを検出したときに表示 -->
-    <a-marker preset="hiro" id="hiro-marker-entity" smooth="true" smoothCount="5">
+    <a-camera position="0 0 0" look-controls="enabled: false"></a-camera>
+
+    <!-- なみすけ（登録画像 index:0） -->
+    <a-entity mindar-image-target="targetIndex: 0">
 
       <!-- 影 -->
       <a-circle
-        position="0 0.02 0"
-        rotation="-90 0 0"
-        radius="0.7"
-        color="#000000"
-        opacity="0.25"
-      ></a-circle>
+        position="0 0 0.01" rotation="-90 0 0"
+        radius="0.5" color="#000000" opacity="0.15">
+      </a-circle>
 
-      <!-- なみすけ本体（ビルボード表示） -->
-      <!-- なみすけの公式キャラクターカラー: 青系 -->
+      <!-- なみすけ本体（ふわふわ浮遊） -->
       <a-entity
         id="namisuke-root"
-        position="0 0.8 0"
-        animation="property: position; to: 0 1.1 0; dur: 1200; dir: alternate; loop: true; easing: easeInOutSine"
+        position="0 0.08 0"
+        animation="property:position; to:0 0.24 0; dur:1400; dir:alternate; loop:true; easing:easeInOutSine"
       >
-        <!-- ── なみすけをSVGデータURIで描画 ── -->
+        <!-- メイン画像 -->
         <a-image
           id="namisuke-sprite"
           src="#namisuke-img"
-          width="1.4"
-          height="1.4"
-          look-at="[camera]"
-          animation__spin="property: rotation; to: 0 360 0; dur: 8000; loop: true; easing: linear; startEvents: spin"
-        ></a-image>
+          width="0.9" height="0.9">
+        </a-image>
 
-        <!-- グロウエフェクト（輝くリング） -->
+        <!-- 光るリング -->
         <a-torus
-          position="0 -0.7 0"
-          rotation="-90 0 0"
-          radius="0.55"
-          radius-tubular="0.03"
-          color="#4aaef0"
-          opacity="0.6"
-          animation="property: rotation; from: -90 0 0; to: -90 360 0; dur: 3000; loop: true; easing: linear"
-        ></a-torus>
+          position="0 -0.38 0" rotation="-90 0 0"
+          radius="0.34" radius-tubular="0.022"
+          color="#4aaef0" opacity="0.5"
+          animation="property:rotation; from:-90 0 0; to:-90 360 0; dur:3000; loop:true; easing:linear">
+        </a-torus>
 
-        <!-- 星パーティクル -->
-        <a-sphere position="0.7 0.3 0" radius="0.06" color="#FFD700"
-          animation="property: position; to: 0.9 0.6 0; dur: 1500; dir: alternate; loop: true; easing: easeInOutSine">
+        <!-- キラキラ ① -->
+        <a-sphere position="0.48 0.18 0" radius="0.038" color="#FFD700"
+          animation="property:position; to:0.62 0.38 0; dur:1600; dir:alternate; loop:true; easing:easeInOutSine">
         </a-sphere>
-        <a-sphere position="-0.6 0.1 0" radius="0.05" color="#FF6B9D"
-          animation="property: position; to: -0.8 0.4 0; dur: 1800; dir: alternate; loop: true; easing: easeInOutSine">
+        <!-- キラキラ ② -->
+        <a-sphere position="-0.4 0.08 0" radius="0.03" color="#a78bfa"
+          animation="property:position; to:-0.56 0.28 0; dur:1900; dir:alternate; loop:true; easing:easeInOutSine">
         </a-sphere>
-        <a-sphere position="0.2 0.8 0" radius="0.04" color="#7C4DFF"
-          animation="property: position; to: 0.4 1.1 0; dur: 1200; dir: alternate; loop: true; easing: easeInOutSine">
+        <!-- キラキラ ③ -->
+        <a-sphere position="0.12 0.52 0" radius="0.025" color="#fb7185"
+          animation="property:position; to:0.26 0.68 0; dur:1300; dir:alternate; loop:true; easing:easeInOutSine">
         </a-sphere>
+
       </a-entity>
 
-      <!-- 名前バッジ -->
+      <!-- 名前テキスト -->
       <a-text
         value="なみすけ"
-        position="0 -0.15 0"
-        align="center"
-        color="#4aaef0"
-        width="3"
-        font="https://cdn.aframe.io/fonts/Roboto-msdf.json"
-      ></a-text>
+        position="0 -0.52 0"
+        align="center" color="#4aaef0" width="2.2"
+        font="https://cdn.jsdelivr.net/npm/aframe/examples/fonts/Roboto-msdf.json">
+      </a-text>
 
-    </a-marker>
-
-    <!-- カメラ -->
-    <a-entity camera></a-entity>
-
-    <!-- アセット -->
-    <a-assets>
-      <!-- なみすけのSVGをデータURIとして埋め込み -->
-      <img id="namisuke-img" src="data:image/svg+xml;charset=utf-8,%3Csvg%20xmlns%3D'http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg'%20viewBox%3D'0%200%20200%20200'%3E%3Ccircle%20cx%3D'100'%20cy%3D'100'%20r%3D'95'%20fill%3D'%2387CEEB'%20stroke%3D'%23fff'%20stroke-width%3D'4'%2F%3E%3Ccircle%20cx%3D'100'%20cy%3D'82'%20r%3D'52'%20fill%3D'%235ab4d6'%2F%3E%3Cellipse%20cx%3D'100'%20cy%3D'155'%20rx%3D'48'%20ry%3D'38'%20fill%3D'%235ab4d6'%2F%3E%3Ccircle%20cx%3D'82'%20cy%3D'76'%20r%3D'14'%20fill%3D'white'%2F%3E%3Ccircle%20cx%3D'118'%20cy%3D'76'%20r%3D'14'%20fill%3D'white'%2F%3E%3Ccircle%20cx%3D'85'%20cy%3D'78'%20r%3D'8'%20fill%3D'%23333'%2F%3E%3Ccircle%20cx%3D'121'%20cy%3D'78'%20r%3D'8'%20fill%3D'%23333'%2F%3E%3Ccircle%20cx%3D'88'%20cy%3D'76'%20r%3D'3'%20fill%3D'white'%2F%3E%3Ccircle%20cx%3D'124'%20cy%3D'76'%20r%3D'3'%20fill%3D'white'%2F%3E%3Cpath%20d%3D'M88%2096%20Q100%20108%20112%2096'%20stroke%3D'%23333'%20stroke-width%3D'3'%20fill%3D'none'%20stroke-linecap%3D'round'%2F%3E%3Cellipse%20cx%3D'76'%20cy%3D'84'%20rx%3D'12'%20ry%3D'8'%20fill%3D'%23FFB6C1'%20opacity%3D'0.7'%2F%3E%3Cellipse%20cx%3D'124'%20cy%3D'84'%20rx%3D'12'%20ry%3D'8'%20fill%3D'%23FFB6C1'%20opacity%3D'0.7'%2F%3E%3Cpath%20d%3D'M56%20140%20Q30%20130%2040%20150%20Q50%20170%2068%20160%20Z'%20fill%3D'%235ab4d6'%2F%3E%3Cpath%20d%3D'M144%20140%20Q170%20130%20160%20150%20Q150%20170%20132%20160%20Z'%20fill%3D'%235ab4d6'%2F%3E%3Ctext%20x%3D'100'%20y%3D'196'%20text-anchor%3D'middle'%20font-size%3D'13'%20fill%3D'%23fff'%20font-family%3D'sans-serif'%20font-weight%3D'bold'%3E%E3%81%AA%E3%81%BF%E3%81%99%E3%81%91%3C%2Ftext%3E%3C%2Fsvg%3E">
-    </a-assets>
-
+    </a-entity>
   </a-scene>
 </div>
 
-<!-- ────────────────────────────────────────────
-  UI オーバーレイ（AR起動後に表示）
-──────────────────────────────────────────── -->
-<div id="ui-overlay" style="display:none;">
+<!-- ════════════════════════════
+  ③ UIオーバーレイ
+════════════════════════════ -->
+<div id="ui">
 
-  <div id="header">
-    <span class="badge">AR LIVE</span>
-    <span class="title">なみすけAR</span>
-  </div>
-
-  <!-- マーカー検出インジケーター -->
-  <div id="detection-indicator">
-    <div class="dot-green"></div>
-    なみすけを検出中！
+  <!-- ヘッダー -->
+  <div id="ui-header">
+    <div class="live-badge">
+      <div class="live-dot"></div>AR LIVE
+    </div>
+    <span class="header-title">なみすけAR</span>
   </div>
 
   <!-- スキャンガイド -->
   <div id="scan-guide">
-    <div class="corner tl"></div>
-    <div class="corner tr"></div>
-    <div class="corner bl"></div>
-    <div class="corner br"></div>
-    <div class="scan-line"></div>
-    <div class="scan-label">マーカーをここに合わせてください</div>
+    <div class="guide-frame">
+      <div class="corner tl"></div>
+      <div class="corner tr"></div>
+      <div class="corner bl"></div>
+      <div class="corner br"></div>
+      <div class="scan-line"></div>
+    </div>
+    <div class="guide-text">
+      <strong>なみすけの画像をここに合わせて</strong>
+      <span>カメラを近づけてゆっくり動かしてください</span>
+    </div>
   </div>
 
-  <!-- 召喚トースト -->
-  <div id="found-toast">🌊 なみすけが現れた！</div>
+  <!-- 認識バッジ -->
+  <div id="detected-badge">
+    <div class="det-dot"></div>
+    なみすけを認識中！
+  </div>
+
+  <!-- 登場トースト -->
+  <div id="toast">🌊 なみすけが現れた！</div>
 
   <!-- アクションボタン -->
-  <div id="action-buttons">
-    <button class="action-btn" id="btn-dance">💃 ダンス</button>
-    <button class="action-btn primary" id="btn-marker">マーカー表示</button>
-    <button class="action-btn" id="btn-spin">🌀 回転</button>
+  <div id="actions">
+    <button class="act-btn" id="btn-jump">✨ ジャンプ</button>
+    <button class="act-btn" id="btn-spin">🌀 スピン</button>
   </div>
 
 </div>
 
-<!-- ────────────────────────────────────────────
-  JavaScript
-──────────────────────────────────────────── -->
 <script>
-(function() {
-  /* ── 要素取得 ── */
-  const loadingScreen   = document.getElementById('loading-screen');
-  const arWrapper       = document.getElementById('ar-scene-wrapper');
-  const uiOverlay       = document.getElementById('ui-overlay');
-  const startBtn        = document.getElementById('start-btn');
-  const showMarkerBtn   = document.getElementById('show-marker-btn');
-  const markerPanel     = document.getElementById('marker-panel');
-  const markerCloseBtn  = document.getElementById('marker-close-btn');
-  const scanGuide       = document.getElementById('scan-guide');
-  const detectionInd    = document.getElementById('detection-indicator');
-  const actionBtns      = document.getElementById('action-buttons');
-  const foundToast      = document.getElementById('found-toast');
-  const hiroMarker      = document.getElementById('hiro-marker-entity');
-  const namisukeSprite  = document.getElementById('namisuke-sprite');
+(function () {
+  'use strict';
+
+  /* 要素取得 */
+  const startScreen    = document.getElementById('start-screen');
+  const startBtn       = document.getElementById('start-btn');
+  const setupGuide     = document.getElementById('setup-guide');
+  const arWrap         = document.getElementById('ar-wrap');
+  const ui             = document.getElementById('ui');
+  const scanGuide      = document.getElementById('scan-guide');
+  const detectedBadge  = document.getElementById('detected-badge');
+  const actions        = document.getElementById('actions');
+  const toast          = document.getElementById('toast');
 
   let isDetected = false;
-  let detectionTimeout = null;
+  let lostTimer  = null;
 
-  /* ── マーカー表示 ── */
-  showMarkerBtn.addEventListener('click', () => {
-    markerPanel.classList.remove('hidden');
-  });
-  markerCloseBtn.addEventListener('click', () => {
-    markerPanel.classList.add('hidden');
-  });
+  /* ────────────────────────────
+     セットアップチェック
+  ──────────────────────────── */
+  async function checkSetup() {
+    // HTTPS チェック
+    const httpsOk = location.protocol === 'https:' || location.hostname === 'localhost';
+    setStatus('st-https', httpsOk, httpsOk ? 'OK' : 'HTTPS必須');
 
-  /* ── AR 起動 ── */
-  startBtn.addEventListener('click', async () => {
-    // カメラ権限リクエスト
+    // カメラ チェック
+    let camOk = false;
     try {
-      await navigator.mediaDevices.getUserMedia({ video: { facingMode: 'environment' } });
-    } catch(e) {
-      alert('カメラへのアクセスが必要です。\nブラウザの設定からカメラを許可してください。');
-      return;
+      const stream = await navigator.mediaDevices.getUserMedia({ video: true });
+      stream.getTracks().forEach(t => t.stop());
+      camOk = true;
+    } catch (_) {}
+    setStatus('st-cam', camOk, camOk ? 'OK' : '許可が必要');
+
+    // targets.mind チェック
+    let mindOk = false;
+    try {
+      const res = await fetch('targets.mind', { method: 'HEAD' });
+      mindOk = res.ok;
+    } catch (_) {}
+    setStatus('st-mind', mindOk, mindOk ? 'OK' : '未設定');
+
+    // ボタン状態を決定
+    if (!mindOk) {
+      startBtn.textContent = 'セットアップが必要です';
+      startBtn.disabled = true;
+      setupGuide.classList.add('show');
+    } else if (!camOk) {
+      startBtn.textContent = 'カメラを許可してください';
+      startBtn.disabled = true;
+    } else if (!httpsOk) {
+      startBtn.textContent = 'HTTPS接続が必要です';
+      startBtn.disabled = true;
+    } else {
+      startBtn.textContent = 'カメラを起動する 🌊';
+      startBtn.disabled = false;
     }
+  }
 
-    // 画面切り替え
-    loadingScreen.classList.add('hidden');
-    arWrapper.classList.add('active');
-    uiOverlay.style.display = 'block';
+  function setStatus(id, ok, label) {
+    const el = document.getElementById(id);
+    el.textContent = label;
+    el.className = 'check-status ' + (ok ? 'status-ok' : 'status-ng');
+  }
 
-    setTimeout(() => loadingScreen.style.display = 'none', 700);
+  checkSetup();
 
-    // マーカー検出イベント
-    hiroMarker.addEventListener('markerFound', onMarkerFound);
-    hiroMarker.addEventListener('markerLost',  onMarkerLost);
+  /* ────────────────────────────
+     AR 起動
+  ──────────────────────────── */
+  startBtn.addEventListener('click', () => {
+    // スタート画面をフェードアウト
+    startScreen.classList.add('hidden');
+    setTimeout(() => { startScreen.style.display = 'none'; }, 520);
+
+    // ARシーン・UI を表示
+    arWrap.classList.add('active');
+    ui.classList.add('active');
+
+    // MindAR を開始
+    const sceneEl = document.getElementById('ar-scene');
+    sceneEl.addEventListener('loaded', () => {
+      const mindSystem = sceneEl.systems['mindar-image-system'];
+      if (mindSystem) mindSystem.start();
+    });
+
+    // 検出イベント
+    sceneEl.addEventListener('targetFound', onFound);
+    sceneEl.addEventListener('targetLost',  onLost);
   });
 
-  /* ── マーカー検出 ── */
-  function onMarkerFound() {
+  /* ────────────────────────────
+     画像認識イベント
+  ──────────────────────────── */
+  function onFound() {
     if (isDetected) return;
     isDetected = true;
-    clearTimeout(detectionTimeout);
+    clearTimeout(lostTimer);
 
+    // スキャンガイドを隠す
     scanGuide.classList.add('hidden');
-    detectionInd.classList.add('visible');
-    actionBtns.classList.add('visible');
+    // バッジ・ボタンを表示
+    detectedBadge.classList.add('show');
+    actions.classList.add('show');
 
-    // トースト表示
-    foundToast.classList.remove('show');
-    void foundToast.offsetWidth; // reflow
-    foundToast.classList.add('show');
-    setTimeout(() => foundToast.classList.remove('show'), 2200);
+    // 登場トースト
+    toast.classList.remove('show');
+    void toast.offsetWidth; // アニメーションリセット
+    toast.classList.add('show');
+    setTimeout(() => toast.classList.remove('show'), 2300);
   }
 
-  function onMarkerLost() {
-    clearTimeout(detectionTimeout);
-    detectionTimeout = setTimeout(() => {
+  function onLost() {
+    clearTimeout(lostTimer);
+    // 1.8秒後にロスト判定（ちらつき防止）
+    lostTimer = setTimeout(() => {
       isDetected = false;
       scanGuide.classList.remove('hidden');
-      detectionInd.classList.remove('visible');
-      actionBtns.classList.remove('visible');
-    }, 1500); // 1.5秒後にロスト判定（ちらつき防止）
+      detectedBadge.classList.remove('show');
+      actions.classList.remove('show');
+    }, 1800);
   }
 
-  /* ── アクションボタン ── */
-  // 💃 ダンス: ジャンプアニメ強化
-  document.getElementById('btn-dance').addEventListener('click', () => {
+  /* ────────────────────────────
+     アクションボタン
+  ──────────────────────────── */
+  // ジャンプ
+  document.getElementById('btn-jump').addEventListener('click', () => {
     const root = document.getElementById('namisuke-root');
     if (!root) return;
-    root.setAttribute('animation', 'property: rotation; to: 0 720 0; dur: 1000; easing: easeInOutQuad');
+    // 通常の浮遊を止めてジャンプアニメ
+    root.setAttribute('animation__jump',
+      'property:position; from:0 0.08 0; to:0 0.7 0; dur:380; dir:alternate; loop:2; easing:easeOutQuad');
+    // 1.6秒後に浮遊アニメに戻す
     setTimeout(() => {
-      root.setAttribute('animation', 'property: position; to: 0 1.1 0; dur: 1200; dir: alternate; loop: true; easing: easeInOutSine');
-    }, 1100);
+      root.removeAttribute('animation__jump');
+      root.setAttribute('animation',
+        'property:position; to:0 0.24 0; dur:1400; dir:alternate; loop:true; easing:easeInOutSine');
+    }, 1600);
   });
 
-  // 🌀 回転
+  // スピン
   document.getElementById('btn-spin').addEventListener('click', () => {
     const sprite = document.getElementById('namisuke-sprite');
     if (!sprite) return;
-    sprite.emit('spin');
-  });
-
-  // マーカー表示（AR中から）
-  document.getElementById('btn-marker').addEventListener('click', () => {
-    markerPanel.classList.remove('hidden');
+    sprite.setAttribute('animation__spin',
+      'property:rotation; from:0 0 0; to:0 360 0; dur:700; easing:easeInOutQuad');
+    setTimeout(() => sprite.removeAttribute('animation__spin'), 750);
   });
 
 })();
 </script>
-
 </body>
 </html>
