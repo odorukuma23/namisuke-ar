@@ -9,6 +9,22 @@
   <style>
     *, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
 
+    /* MindARが生成するカメラ映像のvideoタグを確実に全画面表示 */
+    video {
+      position: fixed !important;
+      top: 0 !important; left: 0 !important;
+      width: 100vw !important; height: 100vh !important;
+      object-fit: cover !important;
+      z-index: 0 !important;
+    }
+    canvas {
+      position: fixed !important;
+      top: 0 !important; left: 0 !important;
+      width: 100vw !important; height: 100vh !important;
+      z-index: 2 !important;
+      background: transparent !important;
+    }
+
     :root {
       --blue:   #4aaef0;
       --purple: #7c4dff;
@@ -172,6 +188,7 @@
     ═══════════════════════════════ */
     #ar-wrap {
       display: none; position: fixed; inset: 0; z-index: 1;
+      background: transparent; overflow: hidden;
     }
     #ar-wrap.active { display: block; }
     a-scene { width: 100vw !important; height: 100vh !important; }
@@ -181,7 +198,7 @@
     ═══════════════════════════════ */
     #ui {
       display: none; position: fixed; inset: 0;
-      z-index: 5000; pointer-events: none;
+      z-index: 8000; pointer-events: none;
     }
     #ui.active { display: block; }
 
@@ -381,8 +398,9 @@
   <a-scene
     id="ar-scene"
     mindar-image="imageTargetSrc: targets.mind; autoStart: false; uiLoading: no; uiScanning: no; uiError: no;"
+    embedded
     color-space="sRGB"
-    renderer="colorManagement: true;"
+    renderer="colorManagement: true; alpha: true;"
     vr-mode-ui="enabled: false"
     device-orientation-permission-ui="enabled: false"
     loading-screen="enabled: false"
