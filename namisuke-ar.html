@@ -369,19 +369,23 @@
     <div class="guide-title">📂 セットアップが必要です</div>
     <div class="guide-step">
       <div class="guide-num">1</div>
-      <div>なみすけ画像（JPG/PNG）を用意して<code>namisuke.png</code>にリネーム</div>
+      <div>なみすけの3Dモデル（GLBファイル）を用意して<code>namisuke.glb</code>にリネーム</div>
     </div>
     <div class="guide-step">
       <div class="guide-num">2</div>
-      <div>下のリンクの変換ツールを開き、画像をアップロード → Start → Export</div>
+      <div>なみすけ画像（JPG/PNG）を用意して<code>namisuke.png</code>にリネーム</div>
     </div>
     <div class="guide-step">
       <div class="guide-num">3</div>
-      <div>ダウンロードしたファイルを<code>targets.mind</code>にリネーム</div>
+      <div>下のリンクの変換ツールを開き、画像をアップロード → Start → Export</div>
     </div>
     <div class="guide-step">
       <div class="guide-num">4</div>
-      <div><code>namisuke-ar.html</code>と同じフォルダに2ファイルをアップロード</div>
+      <div>ダウンロードしたファイルを<code>targets.mind</code>にリネーム</div>
+    </div>
+    <div class="guide-step">
+      <div class="guide-num">5</div>
+      <div><code>namisuke-ar.html</code>と同じフォルダに3ファイルをアップロード</div>
     </div>
     <a class="guide-link"
        href="https://hiukim.github.io/mind-ar-js-doc/tools/compile"
@@ -405,8 +409,9 @@
     device-orientation-permission-ui="enabled: false"
     loading-screen="enabled: false"
   >
-    <a-assets>
-      <img id="namisuke-img" src="namisuke.png" crossorigin="anonymous">
+    <a-assets timeout="15000">
+      <!-- 3Dモデル（GLB） -->
+      <a-asset-item id="namisuke-glb" src="namisuke.glb"></a-asset-item>
     </a-assets>
 
     <a-camera position="0 0 0" look-controls="enabled: false"></a-camera>
@@ -416,7 +421,7 @@
 
       <!-- 影 -->
       <a-circle
-        position="0 0 0.01" rotation="-90 0 0"
+        position="0 -0.01 0" rotation="-90 0 0"
         radius="0.5" color="#000000" opacity="0.15">
       </a-circle>
 
@@ -426,12 +431,14 @@
         position="0 0.08 0"
         animation="property:position; to:0 0.24 0; dur:1400; dir:alternate; loop:true; easing:easeInOutSine"
       >
-        <!-- メイン画像 -->
-        <a-image
-          id="namisuke-sprite"
-          src="#namisuke-img"
-          width="0.9" height="0.9">
-        </a-image>
+        <!-- 3Dモデル本体 -->
+        <a-gltf-model
+          id="namisuke-model"
+          src="#namisuke-glb"
+          position="0 0 0"
+          rotation="0 0 0"
+          scale="0.4 0.4 0.4">
+        </a-gltf-model>
 
         <!-- 光るリング -->
         <a-torus
@@ -606,6 +613,37 @@
   });
 
   /* ────────────────────────────
+     GLBモデルのロード処理
+  ──────────────────────────── */
+  // モデルロード完了後にスケールを自動調整
+  document.addEventListener('DOMContentLoaded', () => {
+    const modelEl = document.getElementById('namisuke-model');
+    if (!modelEl) return;
+
+    modelEl.addEventListener('model-loaded', (e) => {
+      // モデルのバウンディングボックスを取得してスケールを正規化
+      const mesh = e.detail.model;
+      const box = new THREE.Box3().setFromObject(mesh);
+      const size = new THREE.Vector3();
+      box.getSize(size);
+      const maxDim = Math.max(size.x, size.y, size.z);
+      // 最大辺が0.6になるようにスケール調整
+      const targetSize = 0.6;
+      const scale = targetSize / maxDim;
+      modelEl.setAttribute('scale', `${scale} ${scale} ${scale}`);
+
+      // モデルを地面に合わせて位置補正
+      const center = new THREE.Vector3();
+      box.getCenter(center);
+      modelEl.setAttribute('position', `${-center.x * scale} ${-center.y * scale} ${-center.z * scale}`);
+    });
+
+    modelEl.addEventListener('model-error', () => {
+      console.warn('GLBモデルの読み込みに失敗しました。namisuke.glbが正しくアップロードされているか確認してください。');
+    });
+  });
+
+  /* ────────────────────────────
      画像認識イベント
   ──────────────────────────── */
   function onFound() {
@@ -644,10 +682,8 @@
   document.getElementById('btn-jump').addEventListener('click', () => {
     const root = document.getElementById('namisuke-root');
     if (!root) return;
-    // 通常の浮遊を止めてジャンプアニメ
     root.setAttribute('animation__jump',
       'property:position; from:0 0.08 0; to:0 0.7 0; dur:380; dir:alternate; loop:2; easing:easeOutQuad');
-    // 1.6秒後に浮遊アニメに戻す
     setTimeout(() => {
       root.removeAttribute('animation__jump');
       root.setAttribute('animation',
@@ -655,13 +691,13 @@
     }, 1600);
   });
 
-  // スピン
+  // スピン（3Dモデルをy軸回転）
   document.getElementById('btn-spin').addEventListener('click', () => {
-    const sprite = document.getElementById('namisuke-sprite');
-    if (!sprite) return;
-    sprite.setAttribute('animation__spin',
+    const model = document.getElementById('namisuke-model');
+    if (!model) return;
+    model.setAttribute('animation__spin',
       'property:rotation; from:0 0 0; to:0 360 0; dur:700; easing:easeInOutQuad');
-    setTimeout(() => sprite.removeAttribute('animation__spin'), 750);
+    setTimeout(() => model.removeAttribute('animation__spin'), 750);
   });
 
 })();
